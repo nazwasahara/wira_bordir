@@ -1,0 +1,320 @@
+<?php
+
+namespace App\Http\Controllers\Owner;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+
+class FinancialReportController extends Controller
+{
+    public function index(Request $request)
+    {
+        // Get filter parameters
+        $reportType = $request->get('report_type', 'monthly');
+        $month = $request->get('month', Carbon::now()->month);
+        $year = $request->get('year', Carbon::now()->year);
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+        // Determine date range based on report type
+        if ($reportType === 'custom' && $dateFrom && $dateTo) {
+            $startDate = Carbon::parse($dateFrom);
+            $endDate = Carbon::parse($dateTo);
+        } elseif ($reportType === 'yearly') {
+            $startDate = Carbon::create($year, 1, 1)->startOfDay();
+            $endDate = Carbon::create($year, 12, 31)->endOfDay();
+        } else {
+            // Monthly
+            $startDate = Carbon::create($year, $month, 1)->startOfDay();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth()->endOfDay();
+        }
+
+        // === REVENUE (PEMASUKAN) ===
+        $revenueData = $this->getRevenueData($startDate, $endDate);
+
+        // === EXPENSES (PENGELUARAN) ===
+        $expensesData = $this->getExpensesData($startDate, $endDate);
+
+        // === NET PROFIT/LOSS ===
+        $netProfit = $revenueData['total'] - $expensesData['total'];
+        $profitMargin = $revenueData['total'] > 0
+            ? round(($netProfit / $revenueData['total']) * 100, 2)
+            : 0;
+
+        // === DETAILED BREAKDOWN ===
+        $detailedRevenue = $this->getDetailedRevenue($startDate, $endDate);
+        $detailedExpenses = $this->getDetailedExpenses($startDate, $endDate);
+
+        // === COMPARISON DATA ===
+        $comparisonData = $this->getComparisonData($reportType, $month, $year, $dateFrom, $dateTo);
+
+        // === PAYMENT STATUS ===
+        $paymentStatus = $this->getPaymentStatus($startDate, $endDate);
+
+        // === TOP REVENUE SOURCES ===
+        $topRevenueSources = $this->getTopRevenueSources($startDate, $endDate);
+
+        // Compile all data
+        $report = [
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+                'label' => $this->getPeriodLabel($reportType, $month, $year, $startDate, $endDate),
+            ],
+            'revenue' => $revenueData,
+            'expenses' => $expensesData,
+            'net_profit' => $netProfit,
+            'profit_margin' => $profitMargin,
+            'detailed_revenue' => $detailedRevenue,
+            'detailed_expenses' => $detailedExpenses,
+            'comparison' => $comparisonData,
+            'payment_status' => $paymentStatus,
+            'top_sources' => $topRevenueSources,
+        ];
+
+        return view('owner.reports.financial', compact(
+            'report',
+            'reportType',
+            'month',
+            'year'
+        ));
+    }
+
+    /**
+     * Print view (no PDF library needed)
+     */
+    public function print(Request $request)
+    {
+        // Get same data as index
+        $reportType = $request->get('report_type', 'monthly');
+        $month = $request->get('month', Carbon::now()->month);
+        $year = $request->get('year', Carbon::now()->year);
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+        // Recreate report data
+        if ($reportType === 'custom' && $dateFrom && $dateTo) {
+            $startDate = Carbon::parse($dateFrom);
+            $endDate = Carbon::parse($dateTo);
+        } elseif ($reportType === 'yearly') {
+            $startDate = Carbon::create($year, 1, 1)->startOfDay();
+            $endDate = Carbon::create($year, 12, 31)->endOfDay();
+        } else {
+            $startDate = Carbon::create($year, $month, 1)->startOfDay();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth()->endOfDay();
+        }
+
+        $revenueData = $this->getRevenueData($startDate, $endDate);
+        $expensesData = $this->getExpensesData($startDate, $endDate);
+        $netProfit = $revenueData['total'] - $expensesData['total'];
+        $profitMargin = $revenueData['total'] > 0
+            ? round(($netProfit / $revenueData['total']) * 100, 2)
+            : 0;
+
+        $detailedRevenue = $this->getDetailedRevenue($startDate, $endDate);
+        $detailedExpenses = $this->getDetailedExpenses($startDate, $endDate);
+        $comparisonData = $this->getComparisonData($reportType, $month, $year, $dateFrom, $dateTo);
+        $paymentStatus = $this->getPaymentStatus($startDate, $endDate);
+        $topRevenueSources = $this->getTopRevenueSources($startDate, $endDate);
+
+        $report = [
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+                'label' => $this->getPeriodLabel($reportType, $month, $year, $startDate, $endDate),
+            ],
+            'revenue' => $revenueData,
+            'expenses' => $expensesData,
+            'net_profit' => $netProfit,
+            'profit_margin' => $profitMargin,
+            'detailed_revenue' => $detailedRevenue,
+            'detailed_expenses' => $detailedExpenses,
+            'comparison' => $comparisonData,
+            'payment_status' => $paymentStatus,
+            'top_sources' => $topRevenueSources,
+        ];
+
+        // Return print-friendly view
+        return view('owner.reports.financial-print', compact('report'));
+    }
+
+    /**
+     * Get revenue data
+     */
+    private function getRevenueData($startDate, $endDate)
+    {
+        $orders = DB::table('view_order_details')
+            ->whereBetween('order_date', [$startDate, $endDate])
+            ->where('order_status', 'done')
+            ->get();
+
+        return [
+            'total' => $orders->sum('total_price'),
+            'count' => $orders->count(),
+            'average' => $orders->avg('total_price') ?? 0,
+            'cash_received' => $orders->sum('amount_paid'),
+        ];
+    }
+
+    /**
+     * Get expenses data
+     */
+    private function getExpensesData($startDate, $endDate)
+    {
+        // Get from purchase_invoices
+        $invoices = DB::table('view_purchase_invoice_complete')
+            ->whereBetween('invoice_date', [$startDate, $endDate])
+            ->get();
+
+        $total = $invoices->sum('line_total');
+
+        // Breakdown by category
+        $byCategory = $invoices->groupBy('item_type')->map(function ($items) {
+            return [
+                'total' => $items->sum('line_total'),
+                'count' => $items->count(),
+            ];
+        });
+
+        return [
+            'total' => $total,
+            'count' => $invoices->count(),
+            'by_category' => $byCategory,
+        ];
+    }
+
+    /**
+     * Get detailed revenue breakdown
+     */
+    private function getDetailedRevenue($startDate, $endDate)
+    {
+        return DB::table('view_order_details')
+            ->whereBetween('order_date', [$startDate, $endDate])
+            ->where('order_status', 'done')
+            ->select(
+                DB::raw('DATE(order_date) as date'),
+                DB::raw('COUNT(*) as orders_count'),
+                DB::raw('SUM(total_price) as total_revenue'),
+                DB::raw('SUM(amount_paid) as total_paid'),
+                DB::raw('AVG(total_price) as avg_order_value')
+            )
+            ->groupBy(DB::raw('DATE(order_date)'))
+            ->orderBy('date', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get detailed expenses breakdown
+     */
+    private function getDetailedExpenses($startDate, $endDate)
+    {
+        return DB::table('view_purchase_invoice_complete')
+            ->whereBetween('invoice_date', [$startDate, $endDate])
+            ->select(
+                'invoice_id',
+                'invoice_date',
+                'item_type',
+                'item_name',
+                'quantity',
+                'unit_price',
+                'line_total'
+            )
+            ->orderBy('invoice_date', 'desc')
+            ->get()
+            ->groupBy('invoice_id');
+    }
+
+    /**
+     * Get comparison data with previous period
+     */
+    private function getComparisonData($reportType, $month, $year, $dateFrom, $dateTo)
+    {
+        if ($reportType === 'custom' && $dateFrom && $dateTo) {
+            $start = Carbon::parse($dateFrom);
+            $end = Carbon::parse($dateTo);
+            $days = $start->diffInDays($end) + 1;
+
+            $prevStart = $start->copy()->subDays($days);
+            $prevEnd = $start->copy()->subDay();
+        } elseif ($reportType === 'yearly') {
+            $prevStart = Carbon::create($year - 1, 1, 1)->startOfDay();
+            $prevEnd = Carbon::create($year - 1, 12, 31)->endOfDay();
+        } else {
+            // Monthly
+            $prevStart = Carbon::create($year, $month, 1)->subMonth()->startOfDay();
+            $prevEnd = Carbon::create($year, $month, 1)->subMonth()->endOfMonth()->endOfDay();
+        }
+
+        $prevRevenue = DB::table('view_order_details')
+            ->whereBetween('order_date', [$prevStart, $prevEnd])
+            ->where('order_status', 'done')
+            ->sum('total_price');
+
+        $prevExpenses = DB::table('view_purchase_invoice_complete')
+            ->whereBetween('invoice_date', [$prevStart, $prevEnd])
+            ->sum('line_total');
+
+        $prevNetProfit = $prevRevenue - $prevExpenses;
+
+        return [
+            'revenue' => $prevRevenue,
+            'expenses' => $prevExpenses,
+            'net_profit' => $prevNetProfit,
+            'period_label' => $this->getPeriodLabel($reportType, $month - 1, $year, $prevStart, $prevEnd),
+        ];
+    }
+
+    /**
+     * Get payment status breakdown
+     */
+    private function getPaymentStatus($startDate, $endDate)
+    {
+        $orders = DB::table('view_order_details')
+            ->whereBetween('order_date', [$startDate, $endDate])
+            ->where('order_status', 'done')
+            ->get();
+
+        return [
+            'fully_paid' => $orders->where('payment_status', 'LUNAS')->count(),
+            'partial_paid' => $orders->where('payment_status', 'PARTIAL')->count(),
+            'unpaid' => $orders->where('payment_status', 'UNPAID')->count(),
+            'total_receivable' => $orders->sum('remaining_payment'),
+        ];
+    }
+
+    /**
+     * Get top revenue sources (products)
+     */
+    private function getTopRevenueSources($startDate, $endDate)
+    {
+        return DB::table('view_order_items_details')
+            ->join('view_order_details', 'view_order_items_details.order_id', '=', 'view_order_details.order_id')
+            ->whereBetween('view_order_details.order_date', [$startDate, $endDate])
+            ->where('view_order_details.order_status', 'done')
+            ->select(
+                'view_order_items_details.product_name',
+                DB::raw('SUM(view_order_items_details.quantity) as total_quantity'),
+                DB::raw('SUM(view_order_items_details.subtotal) as total_revenue')
+            )
+            ->groupBy('view_order_items_details.product_name')
+            ->orderBy('total_revenue', 'desc')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * Get period label
+     */
+    private function getPeriodLabel($reportType, $month, $year, $startDate, $endDate)
+    {
+        if ($reportType === 'custom') {
+            return $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y');
+        } elseif ($reportType === 'yearly') {
+            return 'Tahun ' . $year;
+        } else {
+            return Carbon::create($year, $month, 1)->locale('id')->isoFormat('MMMM YYYY');
+        }
+    }
+}

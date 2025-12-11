@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    
+    /* Colors */
+    --color-leaf: #3A5A40;
+    --color-moss: #344E41;
+    --color-text-dark: #2F3E46;
+    --color-rose: #CB7372;
+    --color-kuning: #F7E699;
+    --color-sage: #B0C5A4;
+
+    /* Fonts */
+    --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Playfair Display", serif;
+
+    /* Animation */
+    --keyframes-float: {
+        0%, 100% { transform: translateY(0) }
+        50% { transform: translateY(-10px) }
+    };
+    --animation-float: float 6s ease-in-out infinite;
+}
+
+/* Plugins */
+@plugin "@tailwindcss/forms";
