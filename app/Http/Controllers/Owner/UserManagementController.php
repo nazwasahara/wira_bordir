@@ -107,13 +107,14 @@ class UserManagementController extends Controller
             ->paginate(10);
 
         // User statistics
+        // Menggunakan status: done, confirm, paid dan amount_paid
         $userStats = [
             'total_orders' => $user->orders()->count(),
-            'completed_orders' => $user->orders()->where('status', 'done')->count(),
-            'pending_orders' => $user->orders()->whereIn('status', ['pending', 'paid', 'confirm'])->count(),
+            'completed_orders' => $user->orders()->whereIn('status', ['done', 'confirm', 'paid'])->count(),
+            'pending_orders' => $user->orders()->where('status', 'pending')->count(),
             'cancelled_orders' => $user->orders()->where('status', 'cancel')->count(),
-            'total_spent' => $user->orders()->where('status', 'done')->sum('total_price'),
-            'avg_order_value' => $user->orders()->where('status', 'done')->avg('total_price') ?? 0,
+            'total_spent' => $user->orders()->whereIn('status', ['done', 'confirm', 'paid'])->sum('amount_paid'),
+            'avg_order_value' => $user->orders()->whereIn('status', ['done', 'confirm', 'paid'])->avg('amount_paid') ?? 0,
             'last_order_date' => $user->orders()->max('created_at'),
         ];
 

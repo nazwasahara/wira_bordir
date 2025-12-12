@@ -290,6 +290,81 @@
                                 @endif
                             </div>
                         </div>
+
+                        <!-- Text and Logo Information -->
+                        @if($item->text_right || $item->text_left || $item->text_single || $item->logo_path)
+                        <div class="text-logo-info mt-3 pt-3 border-top">
+                            <h6 class="small text-muted mb-3">
+                                <i class="fas fa-font me-2"></i>Informasi Teks & Logo
+                            </h6>
+                            <div class="row g-3">
+                                @if($item->text_right)
+                                <div class="col-md-6">
+                                    <div class="card bg-light border-0">
+                                        <div class="card-body p-3">
+                                            <small class="text-muted d-block mb-1">
+                                                <i class="fas fa-align-right me-1"></i>Teks Kanan
+                                            </small>
+                                            <strong class="d-block">{{ $item->text_right }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+
+                                @if($item->text_left)
+                                <div class="col-md-6">
+                                    <div class="card bg-light border-0">
+                                        <div class="card-body p-3">
+                                            <small class="text-muted d-block mb-1">
+                                                <i class="fas fa-align-left me-1"></i>Teks Kiri
+                                            </small>
+                                            <strong class="d-block">{{ $item->text_left }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+
+                                @if($item->text_single)
+                                <div class="col-md-12">
+                                    <div class="card bg-light border-0">
+                                        <div class="card-body p-3">
+                                            <small class="text-muted d-block mb-1">
+                                                <i class="fas fa-align-center me-1"></i>Teks Tunggal
+                                            </small>
+                                            <strong class="d-block">{{ $item->text_single }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+
+                                @if($item->logo_path)
+                                <div class="col-md-12">
+                                    <div class="card bg-light border-0">
+                                        <div class="card-body p-3">
+                                            <small class="text-muted d-block mb-2">
+                                                <i class="fas fa-image me-1"></i>Logo
+                                            </small>
+                                            <div class="text-center">
+                                                <img src="{{ asset('storage/' . $item->logo_path) }}" 
+                                                     alt="Logo" 
+                                                     class="img-thumbnail"
+                                                     style="max-width: 200px; max-height: 200px; object-fit: contain; cursor: pointer;"
+                                                     onclick="showImageModal('{{ asset('storage/' . $item->logo_path) }}')">
+                                                <div class="mt-2">
+                                                    <a href="{{ asset('storage/' . $item->logo_path) }}" 
+                                                       target="_blank" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-external-link-alt me-1"></i>Lihat Full Size
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
                     </div>
                 </div>
                 @endforeach

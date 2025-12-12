@@ -9,6 +9,12 @@
         <span class="badge bg-{{ $order->status_badge_color }}">{{ $order->status_text }}</span>
     </h2>
     <div>
+        <form action="{{ route('admin.orders.recalculate', $order) }}" method="POST" class="d-inline me-2">
+            @csrf
+            <button type="submit" class="btn btn-outline-primary" title="Hitung ulang total menggunakan SQL function">
+                <i class="fas fa-calculator me-2"></i>Hitung Ulang Total
+            </button>
+        </form>
         <a href="{{ route('admin.orders.invoice', $order) }}" class="btn btn-info me-2" target="_blank">
             <i class="fas fa-print me-2"></i>Cetak Invoice
         </a>
@@ -41,9 +47,33 @@
                 </div>
                 <hr>
                 <div class="mb-3">
-                    <small class="text-muted d-block">Total Pesanan</small>
+                    <small class="text-muted d-block">Total Pesanan (Tersimpan)</small>
                     <strong class="h4 text-success">{{ $order->formatted_total_price }}</strong>
                 </div>
+                @if(isset($calculatedTotal))
+                <div class="mb-3">
+                    <div class="card bg-light border-primary">
+                        <div class="card-body p-3">
+                            <small class="text-muted d-block mb-2">
+                                <i class="fas fa-database me-1 text-primary"></i>
+                                <strong>Total</strong>
+                            </small>
+                            <strong class="h5 text-primary mb-2 d-block">Rp {{ number_format($calculatedTotal, 0, ',', '.') }}</strong>
+                            @if(abs($calculatedTotal - $order->total_price) > 0.01)
+                                <div class="alert alert-warning small mb-0 mt-2" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>Perbedaan ditemukan!</strong><br>
+                                    <small>
+                                        Tersimpan: Rp {{ number_format($order->total_price, 0, ',', '.') }}<br>
+                                        Dihitung: Rp {{ number_format($calculatedTotal, 0, ',', '.') }}<br>
+                                        Selisih: Rp {{ number_format(abs($calculatedTotal - $order->total_price), 0, ',', '.') }}
+                                    </small>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endif
                 <div class="mb-3">
                     <small class="text-muted d-block">Jumlah Dibayar</small>
                     <strong class="h5">{{ $order->formatted_amount_paid }}</strong>
@@ -442,6 +472,44 @@
                                 </div>
                             </div>
                         @endif
+                        
+                        @if($item->text_right)
+                            <div class="col-md-12">
+                                <div class="custom-badge">
+                                    <i class="fas fa-align-right fa-xs text-dark me-1"></i>
+                                    <strong>Teks Kanan:</strong> {{ $item->text_right }}
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($item->text_left)
+                            <div class="col-md-12">
+                                <div class="custom-badge">
+                                    <i class="fas fa-align-left fa-xs text-dark me-1"></i>
+                                    <strong>Teks Kiri:</strong> {{ $item->text_left }}
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($item->text_single)
+                            <div class="col-md-12">
+                                <div class="custom-badge">
+                                    <i class="fas fa-align-center fa-xs text-dark me-1"></i>
+                                    <strong>Teks Tunggal:</strong> {{ $item->text_single }}
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($item->logo_path)
+                            <div class="col-md-12">
+                                <div class="custom-badge d-flex align-items-center">
+                                    <i class="fas fa-image fa-xs text-dark me-1"></i>
+                                    <strong>Logo:</strong> 
+                                    <img src="{{ asset('storage/' . $item->logo_path) }}" alt="Logo" style="max-height: 50px; vertical-align: middle; margin-left: 8px;">
+                                </div>
+                            </div>
+                        @endif
+
                     </div>
                 </div>
             </div>

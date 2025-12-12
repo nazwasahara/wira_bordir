@@ -215,11 +215,14 @@ class SalesAnalyticsController extends Controller
 
         $data = $query->get();
 
+        // Menggunakan status: done, confirm, paid dan amount_paid
+        $relevantOrders = $data->whereIn('order_status', ['done', 'confirm', 'paid']);
+        
         return [
-            'revenue' => $data->where('order_status', 'done')->sum('total_price'),
+            'revenue' => $relevantOrders->sum('amount_paid'),
             'orders' => $data->count(),
-            'completed' => $data->where('order_status', 'done')->count(),
-            'avg_value' => $data->where('order_status', 'done')->avg('total_price') ?? 0,
+            'completed' => $relevantOrders->count(),
+            'avg_value' => $relevantOrders->avg('amount_paid') ?? 0,
             'customers' => $data->pluck('user_id')->filter()->unique()->count(),
         ];
     }
@@ -262,8 +265,11 @@ class SalesAnalyticsController extends Controller
 
         $data = $query->get();
 
+        // Menggunakan status: done, confirm, paid dan amount_paid
+        $relevantOrders = $data->whereIn('order_status', ['done', 'confirm', 'paid']);
+
         return [
-            'revenue' => $data->where('order_status', 'done')->sum('total_price'),
+            'revenue' => $relevantOrders->sum('amount_paid'),
             'orders' => $data->count(),
             'customers' => $data->pluck('user_id')->filter()->unique()->count(),
         ];

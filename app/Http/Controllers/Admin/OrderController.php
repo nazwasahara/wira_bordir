@@ -66,6 +66,8 @@ class OrderController extends Controller
             'cancelled' => Order::cancelled()->count(),
             'total_revenue' => Order::done()->sum('total_price'),
             'pending_payment' => Order::pending()->sum('total_price'),
+            // Menggunakan SQL function untuk revenue bulan ini
+            'revenue_this_month' => DB::selectOne("SELECT fn_get_revenue_this_month() AS revenue")->revenue ?? 0,
         ];
 
         return view('admin.orders.index', compact('orders', 'stats'));
@@ -92,7 +94,10 @@ class OrderController extends Controller
             'cancelledTransaction'
         ]);
 
-        return view('admin.orders.show', compact('order'));
+        // Hitung ulang total menggunakan SQL function untuk validasi
+        $calculatedTotal = DB::selectOne("SELECT fn_get_order_total(?) as total", [$order->id])->total ?? 0;
+        
+        return view('admin.orders.show', compact('order', 'calculatedTotal'));
     }
 
     /**
@@ -445,6 +450,16 @@ class OrderController extends Controller
             // Update order total price
             $order->update(['total_price' => $totalPrice]);
 
+            // Validasi menggunakan SQL function untuk memastikan konsistensi
+            $calculatedTotal = DB::selectOne("SELECT fn_get_order_total(?) as total", [$order->id])->total ?? 0;
+            
+            // Jika ada perbedaan, update dengan nilai dari function (lebih akurat)
+            if (abs($calculatedTotal - $totalPrice) > 0.01) {
+                Log::warning("Order {$order->id} total mismatch: calculated={$totalPrice}, function={$calculatedTotal}. Using function value.");
+                $order->update(['total_price' => $calculatedTotal]);
+                $totalPrice = $calculatedTotal;
+            }
+
             DB::commit();
 
             // ✅ CORRECT - Log after successful creation
@@ -637,6 +652,16 @@ class OrderController extends Controller
             // Update order total price
             $order->update(['total_price' => $totalPrice]);
 
+            // Validasi menggunakan SQL function untuk memastikan konsistensi
+            $calculatedTotal = DB::selectOne("SELECT fn_get_order_total(?) as total", [$order->id])->total ?? 0;
+            
+            // Jika ada perbedaan, update dengan nilai dari function (lebih akurat)
+            if (abs($calculatedTotal - $totalPrice) > 0.01) {
+                Log::warning("Order {$order->id} total mismatch: calculated={$totalPrice}, function={$calculatedTotal}. Using function value.");
+                $order->update(['total_price' => $calculatedTotal]);
+                $totalPrice = $calculatedTotal;
+            }
+
             // Refresh to get new data
             $order->refresh();
             $order->load('orderItems');
@@ -747,5 +772,68 @@ class OrderController extends Controller
         }
 
         return $price;
+    }
+
+    /**
+     * Get revenue by date range using SQL function
+     */
+    public function getRevenueByDateRange(Request $request)
+    {
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'status' => 'nullable|in:' . implode(',', array_keys(Order::getStatuses())),
+        ]);
+
+        try {
+            $revenue = DB::selectOne(
+                "SELECT fn_get_revenue_by_date_range(?, ?, ?) as revenue",
+                [
+                    $validated['start_date'],
+                    $validated['end_date'],
+                    $validated['status'] ?? null
+                ]
+            )->revenue ?? 0;
+
+            return response()->json([
+                'success' => true,
+                'revenue' => $revenue,
+                'formatted_revenue' => 'Rp ' . number_format($revenue, 0, ',', '.'),
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'status' => $validated['status'] ?? 'all',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Recalculate order total using SQL function
+     */
+    public function recalculateTotal(Order $order)
+    {
+        try {
+            $calculatedTotal = DB::selectOne("SELECT fn_get_order_total(?) as total", [$order->id])->total ?? 0;
+            
+            $oldTotal = $order->total_price;
+            $order->update(['total_price' => $calculatedTotal]);
+
+            self::logActivity(
+                action: 'update',
+                model: 'Order',
+                modelId: $order->id,
+                description: "Menghitung ulang total pesanan {$order->order_number} dari Rp " . number_format($oldTotal, 0, ',', '.') . " menjadi Rp " . number_format($calculatedTotal, 0, ',', '.'),
+                oldValues: ['total_price' => $oldTotal],
+                newValues: ['total_price' => $calculatedTotal]
+            );
+
+            return back()->with('success', 'Total pesanan berhasil dihitung ulang!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 }

@@ -64,6 +64,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::delete('orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
     Route::get('orders/{order}/payment-proof', [OrderController::class, 'viewPaymentProof'])->name('orders.payment-proof');
     Route::get('orders/{order}/invoice', [OrderController::class, 'printInvoice'])->name('orders.invoice');
+    Route::post('orders/{order}/recalculate', [OrderController::class, 'recalculateTotal'])->name('orders.recalculate');
 
     Route::resource('galleries', GalleryController::class);
 });

@@ -380,6 +380,39 @@
                     @endforeach
                 </select>
             </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Teks Kanan (Opsional)</label>
+                <input type="text" class="form-control text-right-input" name="items[0][text_right]" maxlength="255">
+            </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Teks Kiri (Opsional)</label>
+                <input type="text" class="form-control text-left-input" name="items[0][text_left]" maxlength="255">
+            </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Teks Tunggal (Opsional)</label>
+                <input type="text" class="form-control text-single-input" name="items[0][text_single]" maxlength="255">
+            </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label"><i class="fas fa-image me-1"></i>Logo (Opsional)</label>
+                <input type="file" class="form-control item-logo-path" name="items[0][logo_path]" accept="image/jpeg,image/jpg,image/png">
+                <small class="text-muted d-block mt-1">
+                    <i class="fas fa-info-circle me-1"></i>Format: JPG, JPEG, PNG (Max: 2MB)
+                </small>
+                <div class="logo-preview mt-2" style="display: none;">
+                    <img src="" alt="Logo Preview" class="img-thumbnail" style="max-height: 100px;">
+                    <button type="button" class="btn btn-sm btn-danger mt-2 remove-item-logo-btn">
+                        <i class="fas fa-times me-1"></i>Hapus Logo
+                    </button>
+                    <div class="form-check mt-2 existing-logo-remove-checkbox" style="display: none;">
+                        <input class="form-check-input" type="checkbox" name="items[0][remove_logo_path]" value="1">
+                        <label class="form-check-label small text-danger">Hapus logo yang sudah ada</label>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="alert alert-info mb-0">
@@ -429,6 +462,7 @@ let itemIndex = 0;
 // Existing order items data - FIXED JSON ENCODING
 const existingItems = {!! json_encode($order->orderItems->map(function($item) {
     return [
+        'id' => $item->id,
         'product_id' => $item->product_id,
         'quantity' => $item->quantity,
         'material_id' => $item->material_id,
@@ -441,6 +475,10 @@ const existingItems = {!! json_encode($order->orderItems->map(function($item) {
         'rombe_option_id' => $item->rombe_option_id,
         'motif_ribbon_option_id' => $item->motif_ribbon_option_id,
         'additional_item_option_id' => $item->additional_item_option_id,
+        'text_right' => $item->text_right,
+        'text_left' => $item->text_left,
+        'text_single' => $item->text_single,
+        'logo_path' => $item->logo_path ? asset('storage/' . $item->logo_path) : null,
     ];
 })->values()) !!};
 
@@ -478,6 +516,15 @@ function addItem(data = null) {
     // Update item number
     clone.querySelector('.item-number').textContent = itemIndex + 1;
     
+    // Add an item ID field to differentiate between existing and new items
+    const itemIdInput = document.createElement('input');
+    itemIdInput.type = 'hidden';
+    itemIdInput.name = `items[${itemIndex}][id]`;
+    if (data && data.id) {
+        itemIdInput.value = data.id;
+    }
+    clone.querySelector('.item-card').prepend(itemIdInput);
+
     // Update all name attributes with correct index
     clone.querySelectorAll('[name^="items[0]"]').forEach(function(input) {
         input.name = input.name.replace('items[0]', `items[${itemIndex}]`);
@@ -504,6 +551,23 @@ function addItem(data = null) {
         newItem.querySelector('[name*="[rombe_option_id]"]').value = data.rombe_option_id || '';
         newItem.querySelector('[name*="[motif_ribbon_option_id]"]').value = data.motif_ribbon_option_id || '';
         newItem.querySelector('[name*="[additional_item_option_id]"]').value = data.additional_item_option_id || '';
+        newItem.querySelector('.text-right-input').value = data.text_right || '';
+        newItem.querySelector('.text-left-input').value = data.text_left || '';
+        newItem.querySelector('.text-single-input').value = data.text_single || '';
+
+        // Handle existing logo
+        if (data.logo_path) {
+            const logoPreviewContainer = newItem.querySelector('.logo-preview');
+            const logoPreviewImg = newItem.querySelector('.logo-preview img');
+            const removeLogoCheckboxContainer = newItem.querySelector('.existing-logo-remove-checkbox');
+            const removeLogoCheckbox = newItem.querySelector('[name*="[remove_logo_path]"]');
+
+            logoPreviewImg.src = data.logo_path;
+            logoPreviewContainer.style.display = 'block';
+            removeLogoCheckboxContainer.style.display = 'block';
+
+            removeLogoCheckbox.name = `items[${itemIndex}][remove_logo_path]`; // Update name attribute
+        }
     }
     
     // Add event listeners for price calculation
@@ -529,11 +593,83 @@ function addItem(data = null) {
         }
     });
     
+    // Setup logo handling for the new item
+    setupItemLogo(newItem);
+
     // Calculate initial price
     calculateItemPrice(newItem);
     
     itemIndex++;
     calculateTotalPrice();
+}
+
+function setupItemLogo(itemCard) {
+    const logoInput = itemCard.querySelector('.item-logo-path');
+    const logoPreviewContainer = itemCard.querySelector('.logo-preview');
+    const logoPreviewImg = itemCard.querySelector('.logo-preview img');
+    const removeLogoBtn = itemCard.querySelector('.remove-item-logo-btn');
+    const existingLogoRemoveCheckboxContainer = itemCard.querySelector('.existing-logo-remove-checkbox');
+    const existingLogoRemoveCheckbox = itemCard.querySelector('[name*="[remove_logo_path]"]');
+
+    logoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Reset checkbox if new file is uploaded
+            if (existingLogoRemoveCheckbox) {
+                existingLogoRemoveCheckbox.checked = false;
+            }
+            if (file.size > 2048000) { // 2MB
+                alert('Ukuran file logo maksimal 2MB!');
+                this.value = '';
+                logoPreviewContainer.style.display = 'none';
+                if (existingLogoRemoveCheckboxContainer) existingLogoRemoveCheckboxContainer.style.display = 'none';
+                return;
+            }
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('Format file logo harus JPG, JPEG, atau PNG!');
+                this.value = '';
+                logoPreviewContainer.style.display = 'none';
+                if (existingLogoRemoveCheckboxContainer) existingLogoRemoveCheckboxContainer.style.display = 'none';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                logoPreviewImg.src = e.target.result;
+                logoPreviewContainer.style.display = 'block';
+                if (existingLogoRemoveCheckboxContainer) existingLogoRemoveCheckboxContainer.style.display = 'none'; // Hide remove existing option if new logo uploaded
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // If no file selected, check if there was an existing logo
+            const existingLogoPath = logoPreviewImg.dataset.existingPath; // Assuming you store existing path in data-attribute
+            if (existingLogoPath) {
+                logoPreviewImg.src = existingLogoPath;
+                logoPreviewContainer.style.display = 'block';
+                if (existingLogoRemoveCheckboxContainer) existingLogoRemoveCheckboxContainer.style.display = 'block';
+            } else {
+                logoPreviewContainer.style.display = 'none';
+                logoPreviewImg.src = '';
+                if (existingLogoRemoveCheckboxContainer) existingLogoRemoveCheckboxContainer.style.display = 'none';
+            }
+        }
+    });
+
+    removeLogoBtn.addEventListener('click', function() {
+        logoInput.value = '';
+        logoPreviewImg.src = '';
+        logoPreviewContainer.style.display = 'none';
+        if (existingLogoRemoveCheckboxContainer) {
+            existingLogoRemoveCheckboxContainer.style.display = 'block';
+            existingLogoRemoveCheckbox.checked = true; // Mark for removal
+        }
+    });
+
+    // If there's an existing logo, store its path and show the remove checkbox
+    if (logoPreviewImg.src) {
+        logoPreviewImg.dataset.existingPath = logoPreviewImg.src;
+        if (existingLogoRemoveCheckboxContainer) existingLogoRemoveCheckboxContainer.style.display = 'block';
+    }
 }
 
 function calculateItemPrice(itemCard) {

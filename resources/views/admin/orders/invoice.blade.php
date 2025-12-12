@@ -338,6 +338,16 @@
                             @if($item->additionalItemOption)
                                 <li>• Item Tambahan: {{ $item->additionalItemOption->additionalItem->name ?? 'N/A' }} - {{ $item->additionalItemOption->color }} ({{ $item->additionalItemOption->model }})</li>
                             @endif
+                            @if($item->text_right)
+                                <li>• Teks Kanan: {{ $item->text_right }}</li>
+                            @endif
+                            @if($item->text_left)
+                                <li>• Teks Kiri: {{ $item->text_left }}</li>
+                            @endif
+                            @if($item->text_single)
+                                <li>• Teks Tunggal: {{ $item->text_single }}</li>
+                            @endif
+                            <li>• Logo: {{ $item->logo_path ? 'Ada' : 'Tidak' }}</li>
                         </ul>
                     </td>
                     <td class="text-center">{{ $item->quantity }}</td>

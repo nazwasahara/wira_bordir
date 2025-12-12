@@ -52,22 +52,23 @@ class OwnerDashboardController extends Controller
             ->count();
 
         // === FINANCIAL STATS ===
-        // Menggunakan VIEW: view_monthly_sales
-        $currentMonth = DB::table('view_monthly_sales')
-            ->where('sale_year', Carbon::now()->year)
-            ->where('sale_month', Carbon::now()->month)
-            ->first();
+        // Menggunakan status: done, confirm, paid dan amount_paid
+        $revenueThisMonth = DB::table('orders')
+            ->whereIn('status', ['done', 'confirm', 'paid'])
+            ->whereYear('created_at', Carbon::now()->year)
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->sum('amount_paid') ?? 0;
 
-        $lastMonth = DB::table('view_monthly_sales')
-            ->where('sale_year', Carbon::now()->subMonth()->year)
-            ->where('sale_month', Carbon::now()->subMonth()->month)
-            ->first();
+        $revenueLastMonth = DB::table('orders')
+            ->whereIn('status', ['done', 'confirm', 'paid'])
+            ->whereYear('created_at', Carbon::now()->subMonth()->year)
+            ->whereMonth('created_at', Carbon::now()->subMonth()->month)
+            ->sum('amount_paid') ?? 0;
 
-        $revenueThisMonth = $currentMonth->confirmed_revenue ?? 0;
-        $revenueLastMonth = $lastMonth->confirmed_revenue ?? 0;
-
-        // Total Revenue (All Time)
-        $totalRevenue = $statusSummary->get('done')->total_value ?? 0;
+        // Total Revenue (All Time) - Menggunakan status: done, confirm, paid dan amount_paid
+        $totalRevenue = DB::table('orders')
+            ->whereIn('status', ['done', 'confirm', 'paid'])
+            ->sum('amount_paid') ?? 0;
 
         // Revenue Growth
         $revenueGrowth = $revenueLastMonth > 0
@@ -169,12 +170,45 @@ class OwnerDashboardController extends Controller
             'orders_by_status' => $ordersByStatus,
         ];
 
+        // === Menggunakan Stored Procedure untuk Sales Statistics ===
+        $salesStats = $this->getSalesStatisticsFromSP();
+
         return view('owner.dashboard', compact(
             'stats',
             'salesChartData',
             'topProducts',
-            'recentOrders'
+            'recentOrders',
+            'salesStats'
         ));
+    }
+
+    /**
+     * Get sales statistics using stored procedure
+     */
+    private function getSalesStatisticsFromSP()
+    {
+        try {
+            $startDate = Carbon::now()->startOfMonth()->toDateString();
+            $endDate = Carbon::now()->endOfMonth()->toDateString();
+
+            $results = DB::select("CALL sp_get_sales_statistics(?, ?)", [
+                $startDate,
+                $endDate
+            ]);
+
+            return collect($results)->map(function ($item) {
+                return [
+                    'status' => $item->status,
+                    'order_count' => $item->order_count,
+                    'total_revenue' => $item->total_revenue,
+                    'total_paid' => $item->total_paid,
+                    'avg_order_value' => $item->avg_order_value,
+                ];
+            });
+        } catch (\Exception $e) {
+            // Fallback jika stored procedure tidak tersedia
+            return collect([]);
+        }
     }
 
     /**

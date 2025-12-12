@@ -64,7 +64,7 @@
 
 <!-- Revenue Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -79,7 +79,28 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted d-block">
+                            <i class="fas fa-database me-1 text-primary"></i>
+                            Revenue Bulan Ini
+                        </small>
+                        <h3 class="mb-0 text-primary">Rp {{ number_format($stats['revenue_this_month'] ?? 0, 0, ',', '.') }}</h3>
+                        <small class="text-muted">
+                            {{ now()->format('F Y') }}
+                        </small>
+                    </div>
+                    <div class="revenue-icon bg-primary text-white">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">

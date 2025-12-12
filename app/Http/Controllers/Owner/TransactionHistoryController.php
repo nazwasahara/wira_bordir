@@ -109,12 +109,17 @@ class TransactionHistoryController extends Controller
 
         $filteredData = $allTransactions->get();
 
+        // Menggunakan status: done, confirm, paid dan amount_paid untuk revenue
+        $revenueOrders = $filteredData->whereIn('order_status', ['done', 'confirm', 'paid']);
+        
         $stats = [
             'total_transactions' => $filteredData->count(),
-            'total_value' => $filteredData->sum('total_price'),
+            'total_value' => $filteredData->sum('total_price'), // Total semua transaksi
+            'total_revenue' => $revenueOrders->sum('amount_paid'), // Revenue dari done/confirm/paid
             'total_paid' => $filteredData->sum('amount_paid'),
             'total_unpaid' => $filteredData->sum('remaining_payment'),
             'avg_transaction' => $filteredData->avg('total_price') ?? 0,
+            'avg_revenue' => $revenueOrders->avg('amount_paid') ?? 0,
 
             // By Status
             'pending_count' => $filteredData->where('order_status', 'pending')->count(),
@@ -198,7 +203,9 @@ class TransactionHistoryController extends Controller
                 DB::raw('DATE(order_date) as date'),
                 DB::raw('COUNT(*) as total_orders'),
                 DB::raw('SUM(total_price) as total_value'),
-                DB::raw('SUM(amount_paid) as total_paid')
+                DB::raw('SUM(amount_paid) as total_paid'),
+                // Revenue hanya dari status done/confirm/paid
+                DB::raw('SUM(CASE WHEN order_status IN (\'done\', \'confirm\', \'paid\') THEN amount_paid ELSE 0 END) as revenue')
             )
             ->groupBy(DB::raw('DATE(order_date)'))
             ->orderBy('date', 'asc');

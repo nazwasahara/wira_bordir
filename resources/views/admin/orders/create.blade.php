@@ -326,6 +326,35 @@
                     @endforeach
                 </select>
             </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Teks Kanan (Opsional)</label>
+                <input type="text" class="form-control" name="items[0][text_right]" value="{{ old('items.0.text_right') }}" maxlength="255">
+            </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Teks Kiri (Opsional)</label>
+                <input type="text" class="form-control" name="items[0][text_left]" value="{{ old('items.0.text_left') }}" maxlength="255">
+            </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Teks Tunggal (Opsional)</label>
+                <input type="text" class="form-control" name="items[0][text_single]" value="{{ old('items.0.text_single') }}" maxlength="255">
+            </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label"><i class="fas fa-image me-1"></i>Logo (Opsional)</label>
+                <input type="file" class="form-control item-logo-path" name="items[0][logo_path]" accept="image/jpeg,image/jpg,image/png">
+                <small class="text-muted d-block mt-1">
+                    <i class="fas fa-info-circle me-1"></i>Format: JPG, JPEG, PNG (Max: 2MB)
+                </small>
+                <div class="logo-preview mt-2" style="display: none;">
+                    <img src="" alt="Logo Preview" class="img-thumbnail" style="max-height: 100px;">
+                    <button type="button" class="btn btn-sm btn-danger mt-2 remove-item-logo-btn">
+                        <i class="fas fa-times me-1"></i>Hapus Logo
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="alert alert-info mb-0">
@@ -392,6 +421,47 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+function setupItemLogo(newItem) {
+    const logoInput = newItem.querySelector('.item-logo-path');
+    const logoPreviewContainer = newItem.querySelector('.logo-preview');
+    const logoPreviewImg = newItem.querySelector('.logo-preview img');
+    const removeLogoBtn = newItem.querySelector('.remove-item-logo-btn');
+
+    logoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2048000) { // 2MB
+                alert('Ukuran file logo maksimal 2MB!');
+                this.value = '';
+                logoPreviewContainer.style.display = 'none';
+                return;
+            }
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('Format file logo harus JPG, JPEG, atau PNG!');
+                this.value = '';
+                logoPreviewContainer.style.display = 'none';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                logoPreviewImg.src = e.target.result;
+                logoPreviewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            logoPreviewContainer.style.display = 'none';
+            logoPreviewImg.src = '';
+        }
+    });
+
+    removeLogoBtn.addEventListener('click', function() {
+        logoInput.value = '';
+        logoPreviewContainer.style.display = 'none';
+        logoPreviewImg.src = '';
+    });
+}
+
 function addItem() {
     const template = document.getElementById('itemTemplate');
     const clone = template.content.cloneNode(true);
@@ -402,7 +472,20 @@ function addItem() {
     // Update all name attributes with correct index
     clone.querySelectorAll('[name^="items[0]"]').forEach(function(input) {
         input.name = input.name.replace('items[0]', `items[${itemIndex}]`);
+        // Clear old values from template
+        if (input.tagName === 'INPUT' && input.type === 'text') {
+            input.value = '';
+        }
+        if (input.tagName === 'SELECT') {
+            input.selectedIndex = 0; // Reset select to first option
+        }
     });
+
+    // Handle logo input name attribute separately as it uses "items[0][logo_path]"
+    const logoInput = clone.querySelector('.item-logo-path');
+    if (logoInput) {
+        logoInput.name = `items[${itemIndex}][logo_path]`;
+    }
     
     // Add to container
     document.getElementById('itemsContainer').appendChild(clone);
@@ -434,6 +517,9 @@ function addItem() {
         }
     });
     
+    // Setup logo handling for the new item
+    setupItemLogo(newItem);
+
     itemIndex++;
     calculateTotalPrice();
 }

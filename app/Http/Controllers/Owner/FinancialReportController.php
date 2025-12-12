@@ -33,7 +33,6 @@ class FinancialReportController extends Controller
 
         // === REVENUE (PEMASUKAN) ===
         $revenueData = $this->getRevenueData($startDate, $endDate);
-
         // === EXPENSES (PENGELUARAN) ===
         $expensesData = $this->getExpensesData($startDate, $endDate);
 
@@ -56,6 +55,9 @@ class FinancialReportController extends Controller
         // === TOP REVENUE SOURCES ===
         $topRevenueSources = $this->getTopRevenueSources($startDate, $endDate);
 
+        // === SALES STATISTICS (Menggunakan Stored Procedure) ===
+        $salesStatistics = $this->getSalesStatisticsFromSP($startDate, $endDate);
+
         // Compile all data
         $report = [
             'period' => [
@@ -72,6 +74,7 @@ class FinancialReportController extends Controller
             'comparison' => $comparisonData,
             'payment_status' => $paymentStatus,
             'top_sources' => $topRevenueSources,
+            'sales_statistics' => $salesStatistics,
         ];
 
         return view('owner.reports.financial', compact(
@@ -118,6 +121,7 @@ class FinancialReportController extends Controller
         $comparisonData = $this->getComparisonData($reportType, $month, $year, $dateFrom, $dateTo);
         $paymentStatus = $this->getPaymentStatus($startDate, $endDate);
         $topRevenueSources = $this->getTopRevenueSources($startDate, $endDate);
+        $salesStatistics = $this->getSalesStatisticsFromSP($startDate, $endDate);
 
         $report = [
             'period' => [
@@ -134,6 +138,7 @@ class FinancialReportController extends Controller
             'comparison' => $comparisonData,
             'payment_status' => $paymentStatus,
             'top_sources' => $topRevenueSources,
+            'sales_statistics' => $salesStatistics,
         ];
 
         // Return print-friendly view
@@ -141,20 +146,40 @@ class FinancialReportController extends Controller
     }
 
     /**
-     * Get revenue data
+     * Get revenue data using stored procedure
      */
     private function getRevenueData($startDate, $endDate)
     {
+        // Menggunakan stored procedure sp_get_financial_report
+        $result = DB::select("CALL sp_get_financial_report(?, ?)", [
+            $startDate->toDateString(),
+            $endDate->toDateString()
+        ]);
+
+        if (!empty($result)) {
+            $data = (array) $result[0];
+            return [
+                'total' => $data['total_revenue'] ?? 0,
+                'count' => $data['total_orders'] ?? 0,
+                'average' => $data['avg_order_value'] ?? 0,
+                'cash_received' => $data['cash_received'] ?? 0,
+                'receivable' => $data['receivable'] ?? 0,
+            ];
+        }
+
+        // Fallback jika stored procedure tidak tersedia
+        // Menggunakan status: done, confirm, paid dan amount_paid
         $orders = DB::table('view_order_details')
             ->whereBetween('order_date', [$startDate, $endDate])
-            ->where('order_status', 'done')
+            ->whereIn('order_status', ['done', 'confirm', 'paid'])
             ->get();
 
         return [
-            'total' => $orders->sum('total_price'),
+            'total' => $orders->sum('amount_paid'),
             'count' => $orders->count(),
-            'average' => $orders->avg('total_price') ?? 0,
+            'average' => $orders->avg('amount_paid') ?? 0,
             'cash_received' => $orders->sum('amount_paid'),
+            'receivable' => $orders->sum('remaining_payment'),
         ];
     }
 
@@ -190,15 +215,16 @@ class FinancialReportController extends Controller
      */
     private function getDetailedRevenue($startDate, $endDate)
     {
+        // Menggunakan status: done, confirm, paid dan amount_paid
         return DB::table('view_order_details')
             ->whereBetween('order_date', [$startDate, $endDate])
-            ->where('order_status', 'done')
+            ->whereIn('order_status', ['done', 'confirm', 'paid'])
             ->select(
                 DB::raw('DATE(order_date) as date'),
                 DB::raw('COUNT(*) as orders_count'),
-                DB::raw('SUM(total_price) as total_revenue'),
+                DB::raw('SUM(amount_paid) as total_revenue'),
                 DB::raw('SUM(amount_paid) as total_paid'),
-                DB::raw('AVG(total_price) as avg_order_value')
+                DB::raw('AVG(amount_paid) as avg_order_value')
             )
             ->groupBy(DB::raw('DATE(order_date)'))
             ->orderBy('date', 'desc')
@@ -247,10 +273,11 @@ class FinancialReportController extends Controller
             $prevEnd = Carbon::create($year, $month, 1)->subMonth()->endOfMonth()->endOfDay();
         }
 
+        // Menggunakan status: done, confirm, paid dan amount_paid
         $prevRevenue = DB::table('view_order_details')
             ->whereBetween('order_date', [$prevStart, $prevEnd])
-            ->where('order_status', 'done')
-            ->sum('total_price');
+            ->whereIn('order_status', ['done', 'confirm', 'paid'])
+            ->sum('amount_paid');
 
         $prevExpenses = DB::table('view_purchase_invoice_complete')
             ->whereBetween('invoice_date', [$prevStart, $prevEnd])
@@ -271,9 +298,10 @@ class FinancialReportController extends Controller
      */
     private function getPaymentStatus($startDate, $endDate)
     {
+        // Menggunakan status: done, confirm, paid
         $orders = DB::table('view_order_details')
             ->whereBetween('order_date', [$startDate, $endDate])
-            ->where('order_status', 'done')
+            ->whereIn('order_status', ['done', 'confirm', 'paid'])
             ->get();
 
         return [
@@ -289,10 +317,13 @@ class FinancialReportController extends Controller
      */
     private function getTopRevenueSources($startDate, $endDate)
     {
+        // Menggunakan status: done, confirm, paid
+        // Note: Untuk revenue per product, tetap menggunakan subtotal dari items
+        // karena amount_paid adalah total per order, bukan per item
         return DB::table('view_order_items_details')
             ->join('view_order_details', 'view_order_items_details.order_id', '=', 'view_order_details.order_id')
             ->whereBetween('view_order_details.order_date', [$startDate, $endDate])
-            ->where('view_order_details.order_status', 'done')
+            ->whereIn('view_order_details.order_status', ['done', 'confirm', 'paid'])
             ->select(
                 'view_order_items_details.product_name',
                 DB::raw('SUM(view_order_items_details.quantity) as total_quantity'),
@@ -315,6 +346,33 @@ class FinancialReportController extends Controller
             return 'Tahun ' . $year;
         } else {
             return Carbon::create($year, $month, 1)->locale('id')->isoFormat('MMMM YYYY');
+        }
+    }
+
+    /**
+     * Get sales statistics using stored procedure
+     */
+    private function getSalesStatisticsFromSP($startDate, $endDate)
+    {
+        try {
+            $results = DB::select("CALL sp_get_sales_statistics(?, ?)", [
+                $startDate->toDateString(),
+                $endDate->toDateString()
+            ]);
+
+            return collect($results)->map(function ($item) {
+                return [
+                    'status' => $item->status,
+                    'order_count' => $item->order_count,
+                    'total_revenue' => $item->total_revenue,
+                    'total_paid' => $item->total_paid,
+                    'avg_order_value' => $item->avg_order_value,
+                ];
+            });
+        } catch (\Exception $e) {
+            // Fallback jika stored procedure tidak tersedia
+            \Log::warning('Stored procedure sp_get_sales_statistics error: ' . $e->getMessage());
+            return collect([]);
         }
     }
 }
