@@ -3,7 +3,7 @@
 @section('title', 'Pembayaran')
 
 @section('content')
-<section class="bg-sage min-h-screen py-16 px-6 md:px-12 lg:px-16">
+<section class="bg-linear-to-b from-white/75 via-white/90 to-sage min-h-screen py-16 px-6 md:px-12 lg:px-16">
     <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-lg text-center space-y-6">
             <h2 class="text-4xl font-bold font-display text-moss mb-6 text-center">Pembayaran Selempang</h2>
             <p class="text-text-dark">Terima kasih telah melakukan pemesanan!<br>Silakan download QRIS di bawah untuk melakukan pembayaran.</p>

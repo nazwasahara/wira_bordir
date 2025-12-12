@@ -3,7 +3,7 @@
 @section('title', 'Custom Order')
 
 @section('content')
-<section class="bg-sage min-h-screen py-16 px-6 md:px-12 lg:px-16">
+<section class="bg-linear-to-b from-white/75 via-white/90 to-sage min-h-screen py-16 px-6 md:px-12 lg:px-16">
     <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-lg">
         <h2 class="text-4xl font-bold font-display text-moss mb-8 mt-2 text-center">Custom Selempang Sesuai Seleramu</h2>
 

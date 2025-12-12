@@ -115,11 +115,18 @@
                         <button type="submit" class="flex items-center w-full text-left py-2 text-lg text-text-dark hover:text-rose rounded-2xl space-x-2 uppercase transition-colors">
                             <!-- Icon Logout -->
                             <span>Logout</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
                             </svg>
                         </button>
                     </form>
+                    <a href="{{ route('order.history') }}" class="flex items-center w-full text-left py-2 text-lg text-text-dark hover:text-rose rounded-2xl space-x-2 uppercase transition-colors">
+                        <span>Order History</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 25 25" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 11V7a4 4 0 10-8 0v4M5 11h14l-1.68 9.46A2 2 0 0115.34 22H8.66a2 2 0 01-1.98-1.54L5 11z" />
+                        </svg>
+                    </a>
                 </div>
             @endauth
         </div>

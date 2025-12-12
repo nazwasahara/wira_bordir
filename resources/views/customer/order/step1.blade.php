@@ -3,7 +3,7 @@
 @section('title', 'Data Pemesan')
 
 @section('content')
-<section class="bg-sage min-h-screen py-20 px-6 md:px-12 lg:px-16">
+<section class="bg-linear-to-b from-white/75 via-white/90 to-sage min-h-screen py-20 px-6 md:px-12 lg:px-16">
     <div class="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-lg">
         <h2 class="text-4xl font-bold font-display text-moss mb-6 text-center">Data Diri Pemesan</h2>
 
