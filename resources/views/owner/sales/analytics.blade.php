@@ -160,54 +160,6 @@
     </div>
 </div>
 
-<!-- Additional Stats - 3 Cards -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
-                <h6 class="text-muted mb-1">Pesanan Selesai</h6>
-                <h4 class="mb-0 fw-bold text-success">{{ number_format($stats['completed_orders']) }}</h4>
-                <small class="text-muted">
-                    {{ $stats['total_orders'] > 0 ? round(($stats['completed_orders'] / $stats['total_orders']) * 100, 1) : 0 }}% 
-                    dari total pesanan
-                </small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-box-open fa-3x text-primary mb-2"></i>
-                <h6 class="text-muted mb-1">Total Item Terjual</h6>
-                <h4 class="mb-0 fw-bold text-primary">
-                    @php
-                        $totalItemsSold = DB::table('view_order_items_details')
-                            ->join('view_order_details', 'view_order_items_details.order_id', '=', 'view_order_details.order_id')
-                            ->where('view_order_details.order_status', 'done')
-                            ->sum('view_order_items_details.quantity');
-                    @endphp
-                    {{ number_format($totalItemsSold) }}
-                </h6>
-                <small class="text-muted">Quantity yang terjual</small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-percentage fa-3x text-warning mb-2"></i>
-                <h6 class="text-muted mb-1">Conversion Rate</h6>
-                <h4 class="mb-0 fw-bold text-warning">
-                    {{ $stats['total_orders'] > 0 ? round(($stats['completed_orders'] / $stats['total_orders']) * 100, 1) : 0 }}%
-                </h4>
-                <small class="text-muted">Order completion rate</small>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Charts Section - 2 Main Charts Side by Side -->
 <div class="row g-4 mb-4">

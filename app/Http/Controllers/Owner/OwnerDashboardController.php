@@ -54,22 +54,22 @@ class OwnerDashboardController extends Controller
         // === FINANCIAL STATS ===
         // Menggunakan status: done, confirm, paid dan amount_paid
         $revenueThisMonth = DB::table('orders')
-            ->whereIn('status', ['done', 'confirm', 'paid'])
+            ->whereIn('status', ['done', 'confirm', 'paid', 'processing'])
             ->whereYear('created_at', Carbon::now()->year)
             ->whereMonth('created_at', Carbon::now()->month)
             ->sum('amount_paid') ?? 0;
 
         $revenueLastMonth = DB::table('orders')
-            ->whereIn('status', ['done', 'confirm', 'paid'])
+            ->whereIn('status', ['done', 'confirm', 'paid', 'processing'])
             ->whereYear('created_at', Carbon::now()->subMonth()->year)
             ->whereMonth('created_at', Carbon::now()->subMonth()->month)
             ->sum('amount_paid') ?? 0;
 
         // Total Revenue (All Time) - Menggunakan status: done, confirm, paid dan amount_paid
         $totalRevenue = DB::table('orders')
-            ->whereIn('status', ['done', 'confirm', 'paid'])
+            ->whereIn('status', ['done', 'confirm', 'paid', 'processing'])
             ->sum('amount_paid') ?? 0;
-
+        // dd($totalRevenue);
         // Revenue Growth
         $revenueGrowth = $revenueLastMonth > 0
             ? round((($revenueThisMonth - $revenueLastMonth) / $revenueLastMonth) * 100, 1)

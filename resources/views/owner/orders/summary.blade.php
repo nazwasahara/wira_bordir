@@ -18,7 +18,7 @@
                 <i class="fas fa-inbox fa-2x text-warning mb-2"></i>
                 <h6 class="text-muted mb-1">Pesanan Masuk</h6>
                 <h3 class="mb-0 fw-bold text-warning">{{ number_format($stats['incoming_orders']) }}</h3>
-                <small class="text-muted">Pending, Paid, Confirm</small>
+                <small class="text-muted">Pending, Paid, Confirm, Processing</small>
             </div>
         </div>
     </div>

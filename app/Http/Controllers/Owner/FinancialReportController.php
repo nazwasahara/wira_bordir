@@ -156,6 +156,7 @@ class FinancialReportController extends Controller
             $endDate->toDateString()
         ]);
 
+
         if (!empty($result)) {
             $data = (array) $result[0];
             return [
@@ -167,11 +168,9 @@ class FinancialReportController extends Controller
             ];
         }
 
-        // Fallback jika stored procedure tidak tersedia
-        // Menggunakan status: done, confirm, paid dan amount_paid
         $orders = DB::table('view_order_details')
             ->whereBetween('order_date', [$startDate, $endDate])
-            ->whereIn('order_status', ['done', 'confirm', 'paid'])
+            ->whereIn('order_status', ['done', 'confirm', 'paid', 'processing'])
             ->get();
 
         return [
@@ -218,7 +217,7 @@ class FinancialReportController extends Controller
         // Menggunakan status: done, confirm, paid dan amount_paid
         return DB::table('view_order_details')
             ->whereBetween('order_date', [$startDate, $endDate])
-            ->whereIn('order_status', ['done', 'confirm', 'paid'])
+            ->whereIn('order_status', ['done', 'confirm', 'paid', 'processing'])
             ->select(
                 DB::raw('DATE(order_date) as date'),
                 DB::raw('COUNT(*) as orders_count'),
@@ -276,7 +275,7 @@ class FinancialReportController extends Controller
         // Menggunakan status: done, confirm, paid dan amount_paid
         $prevRevenue = DB::table('view_order_details')
             ->whereBetween('order_date', [$prevStart, $prevEnd])
-            ->whereIn('order_status', ['done', 'confirm', 'paid'])
+            ->whereIn('order_status', ['done', 'confirm', 'paid', 'processing'])
             ->sum('amount_paid');
 
         $prevExpenses = DB::table('view_purchase_invoice_complete')
@@ -301,7 +300,7 @@ class FinancialReportController extends Controller
         // Menggunakan status: done, confirm, paid
         $orders = DB::table('view_order_details')
             ->whereBetween('order_date', [$startDate, $endDate])
-            ->whereIn('order_status', ['done', 'confirm', 'paid'])
+            ->whereIn('order_status', ['done', 'confirm', 'paid', 'processing'])
             ->get();
 
         return [
@@ -323,7 +322,7 @@ class FinancialReportController extends Controller
         return DB::table('view_order_items_details')
             ->join('view_order_details', 'view_order_items_details.order_id', '=', 'view_order_details.order_id')
             ->whereBetween('view_order_details.order_date', [$startDate, $endDate])
-            ->whereIn('view_order_details.order_status', ['done', 'confirm', 'paid'])
+            ->whereIn('view_order_details.order_status', ['done', 'confirm', 'paid', 'processing'])
             ->select(
                 'view_order_items_details.product_name',
                 DB::raw('SUM(view_order_items_details.quantity) as total_quantity'),

@@ -82,7 +82,7 @@ class BestSellerController extends Controller
     {
         $query = DB::table('view_order_items_details')
             ->join('view_order_details', 'view_order_items_details.order_id', '=', 'view_order_details.order_id')
-            ->whereIn('view_order_details.order_status', ['done', 'confirm', 'paid']);
+            ->whereIn('view_order_details.order_status', ['done', 'confirm', 'paid', 'processing']);
 
         // Apply date filter
         if ($startDate && $endDate) {
@@ -213,7 +213,7 @@ class BestSellerController extends Controller
     {
         $query = DB::table('view_order_items_details')
             ->join('view_order_details', 'view_order_items_details.order_id', '=', 'view_order_details.order_id')
-            ->whereIn('view_order_details.order_status', ['done', 'confirm', 'paid']);
+            ->whereIn('view_order_details.order_status', ['done', 'confirm', 'paid', 'processing']);
 
         if ($startDate && $endDate) {
             $query->whereBetween('view_order_details.order_date', [$startDate, $endDate]);

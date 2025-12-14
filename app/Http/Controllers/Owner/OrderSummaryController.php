@@ -53,7 +53,7 @@ class OrderSummaryController extends Controller
         $statusSummary = DB::table('view_order_status_summary')->get()->keyBy('status');
 
         // Pesanan Masuk
-        $incomingOrders = collect(['pending', 'paid', 'confirm'])
+        $incomingOrders = collect(['pending', 'paid', 'confirm', 'processing'])
             ->sum(fn($status) => $statusSummary->get($status)->total_count ?? 0);
 
         // Pesanan Selesai
@@ -72,7 +72,7 @@ class OrderSummaryController extends Controller
         $statusDistribution = $statusSummary->pluck('total_count', 'status')->toArray();
 
         // Financial Stats - Menggunakan status: done, confirm, paid dan amount_paid
-        $totalRevenue = Order::whereIn('status', ['done', 'confirm', 'paid'])->sum('amount_paid') ?? 0;
+        $totalRevenue = Order::whereIn('status', ['done', 'confirm', 'paid', 'processing'])->sum('amount_paid') ?? 0;
         $pendingPayment = Order::where('status', 'pending')->sum('total_price') ?? 0;
 
         // Date Range Stats (if filtered)
@@ -84,8 +84,8 @@ class OrderSummaryController extends Controller
 
             $dateRangeStats = [
                 'total_orders' => $rangeQuery->count(),
-                'total_revenue' => $rangeQuery->whereIn('status', ['done', 'confirm', 'paid'])->sum('amount_paid'),
-                'completed' => $rangeQuery->whereIn('status', ['done', 'confirm', 'paid'])->count(),
+                'total_revenue' => $rangeQuery->whereIn('status', ['done', 'confirm', 'paid', 'processing'])->sum('amount_paid'),
+                'completed' => $rangeQuery->whereIn('status', ['done', 'confirm', 'paid', 'processing'])->count(),
             ];
         }
 
