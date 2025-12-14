@@ -156,10 +156,10 @@ class AdminDashboardController extends Controller
             'pending_orders' => $pendingOrders,
             'pending_growth' => $pendingGrowth,
             'total_products' => $totalProducts,
-            'total_revenue' => Order::where('status', 'done')->sum('total_price'),
-            'revenue_this_month' => Order::where('status', 'done')
+            'total_revenue' => Order::whereIn('status', ['paid', 'confirm', 'processing', 'done'])->sum('amount_paid'),
+            'revenue_this_month' => Order::whereIn('status', ['paid', 'confirm', 'processing', 'done'])
                 ->whereMonth('created_at', Carbon::now()->month)
-                ->sum('total_price'),
+                ->sum('amount_paid'),
         ];
 
         return view('admin.dashboard', compact(

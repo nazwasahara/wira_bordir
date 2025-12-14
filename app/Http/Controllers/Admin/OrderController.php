@@ -64,9 +64,8 @@ class OrderController extends Controller
             'processing' => Order::processing()->count(),
             'completed' => Order::done()->count(),
             'cancelled' => Order::cancelled()->count(),
-            'total_revenue' => Order::done()->sum('total_price'),
+            'total_revenue' => Order::whereIn('status', ['paid', 'confirm', 'processing', 'done'])->sum('amount_paid'),
             'pending_payment' => Order::pending()->sum('total_price'),
-            // Menggunakan SQL function untuk revenue bulan ini
             'revenue_this_month' => DB::selectOne("SELECT fn_get_revenue_this_month() AS revenue")->revenue ?? 0,
         ];
 

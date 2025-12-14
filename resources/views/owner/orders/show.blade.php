@@ -20,33 +20,22 @@
 @if(isset($orderStats))
 <div class="alert alert-info border-0 shadow-sm mb-4">
     <div class="row text-center">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <i class="fas fa-shopping-bag me-2"></i>
             <strong>{{ $orderStats->total_items }} Item</strong>
             <small class="d-block">Total Items</small>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <i class="fas fa-boxes me-2"></i>
             <strong>{{ $orderStats->total_quantity }} Pcs</strong>
             <small class="d-block">Total Quantity</small>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <i class="fas fa-credit-card me-2"></i>
             <strong class="text-{{ $orderStats->payment_status == 'LUNAS' ? 'success' : ($orderStats->payment_status == 'PARTIAL' ? 'warning' : 'danger') }}">
                 {{ $orderStats->payment_status }}
             </strong>
             <small class="d-block">Status Pembayaran</small>
-        </div>
-        <div class="col-md-3">
-            @if($orderStats->remaining_payment > 0)
-                <i class="fas fa-exclamation-circle text-warning me-2"></i>
-                <strong>Rp {{ number_format($orderStats->remaining_payment, 0, ',', '.') }}</strong>
-                <small class="d-block">Sisa Pembayaran</small>
-            @else
-                <i class="fas fa-check-circle text-success me-2"></i>
-                <strong>LUNAS</strong>
-                <small class="d-block">Pembayaran</small>
-            @endif
         </div>
     </div>
 </div>

@@ -69,7 +69,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small class="text-muted d-block">Total Pendapatan (Selesai)</small>
+                        <small class="text-muted d-block">Total Pendapatan</small>
                         <h3 class="mb-0 text-success">Rp {{ number_format($stats['total_revenue'], 0, ',', '.') }}</h3>
                     </div>
                     <div class="revenue-icon bg-success text-white">

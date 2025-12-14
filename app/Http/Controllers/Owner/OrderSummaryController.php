@@ -134,6 +134,7 @@ class OrderSummaryController extends Controller
             'cancelledTransaction'
         ]);
 
+
         // Get additional stats from VIEW for context
         $orderStats = DB::table('view_order_details')
             ->where('order_id', $order->id)
